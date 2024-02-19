@@ -1,11 +1,32 @@
 'use client';
 import {useRef, useState} from "react";
+import {md5} from 'hash-wasm';
 
 export default function Home() {
     const [s3url, setS3url] = useState<string>('')
     const fileInput = useRef<HTMLInputElement>(null);
     const [s3response, setS3Response] = useState<string>('')
     const [isSending, setIsSending] = useState<boolean>(false);
+    const [md5sum, setMd5sum] = useState<string>('');
+
+    const handleFileInput = async () => {
+        if (fileInput?.current?.files) {
+            const reader = new FileReader()
+
+            reader.onload = async (e) => {
+                if (e.target?.result instanceof ArrayBuffer) {
+                    const arrayBuffer = new Uint8Array(e.target.result)
+                    if (arrayBuffer) {
+                        const hash = await md5(arrayBuffer);
+                        setMd5sum(hash)
+                    }
+                }
+            };
+
+            reader.readAsArrayBuffer(fileInput.current.files[0])
+
+        }
+    }
 
     const handleSubmit = async () => {
         if (!s3url || !fileInput || !fileInput?.current?.files) {
@@ -40,10 +61,15 @@ export default function Home() {
 
             <input type="file"
                    ref={fileInput}
+                   onInput={handleFileInput}
                    accept="image/*"
                    className="block mb-4"
                    required={true}
             />
+
+            {md5sum && <div className={"mt-4"}>
+                <p className="text-3xl">MD5 hash: {md5sum}</p>
+            </div>}
 
             <button className="p-4 bg-orange-400 hover:bg-orange-600 text-black" onClick={handleSubmit}>Send to S3
             </button>
